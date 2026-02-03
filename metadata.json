@@ -1,0 +1,8 @@
+{
+  "name": "Hangoutz MVP",
+  "description": "A local social gathering app for verified users to create and join meetups with AI-moderated safety features.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}

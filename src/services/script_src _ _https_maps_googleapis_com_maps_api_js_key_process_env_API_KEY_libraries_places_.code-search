@@ -1,0 +1,10 @@
+# Query: script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.API_KEY}&libraries=places`;\n
+# ContextLines: 1
+
+1 result - 1 file
+
+C:\Users\pkhar\Downloads\hangoutz-mvp (4)\App.tsx:
+  119          script.id = 'google-maps-script';
+  120:         script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.API_KEY}&libraries=places`;=
+  121:         script.async = true;
+  122          script.defer = true;

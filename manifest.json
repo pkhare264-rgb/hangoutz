@@ -1,0 +1,22 @@
+
+{
+  "name": "Hangoutz",
+  "short_name": "Hangoutz",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#0a0a0a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1042/1042390.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1042/1042390.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
