@@ -1,11 +1,17 @@
 import mongoose from "mongoose";
 
-const connectDB = async () => {
+const connectDB = async (): Promise<void> => {
   try {
-    await mongoose.connect(process.env.MONGO_URI as string);
-    console.log("MongoDB connected");
+    const uri = process.env.MONGODB_URI;
+
+    if (!uri) {
+      throw new Error("MONGODB_URI is not defined");
+    }
+
+    await mongoose.connect(uri);
+    console.log("✅ MongoDB connected");
   } catch (error) {
-    console.error("MongoDB connection failed", error);
+    console.error("❌ MongoDB connection failed:", error);
     process.exit(1);
   }
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, SocialEvent, ChatMessage, Conversation, Report, PeerReview } from './types';
 import * as DB from './services/db';
-import { moderateText, getChatResponse, findPlacesWithAI } from './services/ai';
+import { moderateText, getChatResponse } from './services/ai';
 import { App as CapacitorApp } from '@capacitor/app';
 // FIREBASE IMPORTS
 import { signInWithPhoneNumber, RecaptchaVerifier, ConfirmationResult } from "firebase/auth";
@@ -122,6 +122,7 @@ const GoogleMap = ({
 
         const script = document.createElement('script');
         script.id = 'google-maps-script';
+        // Using ImportMeta env safely (requires vite-env.d.ts or similar config)
         script.src = `https://maps.googleapis.com/maps/api/js?key=${import.meta.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places`;
         script.async = true;
         script.defer = true;
@@ -459,21 +460,16 @@ export default function App() {
 
   // --- NATIVE BACK BUTTON HANDLING ---
   useEffect(() => {
-    // This event listener handles the hardware back button on Android
     const handleBackButton = async () => {
         try {
             await CapacitorApp.addListener('backButton', ({ canGoBack }) => {
                 if (currentView === 'HOME' || currentView === 'AUTH') {
-                    // If on root screen, minimize app (or exit)
                     CapacitorApp.exitApp();
                 } else if (['EVENT_DETAILS', 'CREATE_EVENT', 'USER_PROFILE', 'MESSAGES', 'PROFILE', 'ADMIN'].includes(currentView)) {
-                    // Go back to home
                     setCurrentView('HOME');
                 } else if (['CHAT_ROOM'].includes(currentView)) {
-                    // Go back to messages list
                     setCurrentView('MESSAGES');
                 } else if (['EDIT_PROFILE', 'PRIVACY', 'BLOCKED_LIST'].includes(currentView)) {
-                    // Go back to profile
                     setCurrentView('PROFILE');
                 } else {
                     setCurrentView('HOME');
@@ -510,7 +506,6 @@ export default function App() {
 
     return (
       <div className="min-h-screen bg-background text-primary flex flex-col font-sans selection:bg-black pt-safe">
-        {/* Global Verification Modal */}
         {showVerificationModal && (
             <div className="fixed inset-0 z-[100] bg-black flex flex-col animate-fade-in">
                 <div className="relative flex-1 w-full max-w-lg mx-auto flex items-center justify-center p-4">
@@ -567,24 +562,18 @@ function HomeScreen({ currentUser, onEventClick, onCreateClick, onHostClick, onO
   useEffect(() => { DB.getEvents(currentUser?._id).then(setEvents); }, [currentUser?._id]);
 
   const filteredEvents = events.filter(e => {
-      // Category Filter
       const catMatch = categoryFilter === 'All' || e.category === categoryFilter || (!e.category && categoryFilter === 'All');
-      
-      // Date Filter
       const eventDate = new Date(e.dateTime);
       const today = new Date();
       const isToday = eventDate.getDate() === today.getDate() && eventDate.getMonth() === today.getMonth() && eventDate.getFullYear() === today.getFullYear();
       let dateMatch = true;
-      
       if (dateFilter === 'TODAY') dateMatch = isToday;
       else if (dateFilter === 'UPCOMING') dateMatch = eventDate > today;
-
       return catMatch && dateMatch;
   });
 
   return (
     <div className="flex flex-col h-full space-y-4">
-      {/* Header */}
       <div className="flex justify-between items-center shrink-0">
           <h1 className="text-3xl font-black">Happening.</h1>
           <div className="flex gap-2">
@@ -592,48 +581,23 @@ function HomeScreen({ currentUser, onEventClick, onCreateClick, onHostClick, onO
             <button onClick={onOpenChat} className="w-10 h-10 bg-white border border-gray-100 text-black rounded-full flex items-center justify-center shadow-lg transform transition active:scale-95"><Icon name="robot" /></button>
           </div>
       </div>
-
-      {/* Date Filter Segment */}
       <div className="bg-gray-100 p-1 rounded-2xl flex shrink-0">
           {['ALL', 'TODAY', 'UPCOMING'].map(f => (
-              <button 
-                key={f} 
-                onClick={() => setDateFilter(f as any)} 
-                className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${dateFilter === f ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}
-              >
-                  {f}
-              </button>
+              <button key={f} onClick={() => setDateFilter(f as any)} className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${dateFilter === f ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}>{f}</button>
           ))}
       </div>
-
-      {/* Category Chips */}
       <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 shrink-0 pr-4 pl-1">
-          <button 
-            onClick={() => setCategoryFilter('All')} 
-            className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition border ${categoryFilter === 'All' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}
-          >
-              All
-          </button>
+          <button onClick={() => setCategoryFilter('All')} className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition border ${categoryFilter === 'All' ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}>All</button>
           {CATEGORIES.map(cat => (
-              <button 
-                key={cat} 
-                onClick={() => setCategoryFilter(cat)} 
-                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition border ${categoryFilter === cat ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}
-              >
-                  {cat}
-              </button>
+              <button key={cat} onClick={() => setCategoryFilter(cat)} className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition border ${categoryFilter === cat ? 'bg-black text-white border-black' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}>{cat}</button>
           ))}
       </div>
-      
-      {/* Toggle View */}
       <div className="flex justify-end shrink-0">
          <div className="flex bg-gray-100 rounded-full p-1">
             <button onClick={() => setViewMode('LIST')} className={`w-8 h-8 rounded-full flex items-center justify-center transition ${viewMode === 'LIST' ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}><Icon name="list" /></button>
             <button onClick={() => setViewMode('MAP')} className={`w-8 h-8 rounded-full flex items-center justify-center transition ${viewMode === 'MAP' ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}><Icon name="map" /></button>
          </div>
       </div>
-
-      {/* Content Area */}
       {viewMode === 'LIST' ? (
         <div className="grid gap-6 pb-20 overflow-y-auto">
             {filteredEvents.length === 0 ? <p className="text-gray-400 text-center py-10">No events found.</p> : (
@@ -642,12 +606,8 @@ function HomeScreen({ currentUser, onEventClick, onCreateClick, onHostClick, onO
                         <div key={event._id} className="group bg-white rounded-3xl p-4 shadow-soft border border-white cursor-pointer overflow-hidden" onClick={() => onEventClick(event)}>
                         <div className="relative aspect-video rounded-2xl overflow-hidden mb-4">
                             <img src={event.imageURL} className="w-full h-full object-cover transition group-hover:scale-105" />
-                            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black shadow-sm">
-                                {new Date(event.dateTime).toDateString()}
-                            </div>
-                            <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur px-3 py-1 rounded-full text-[10px] text-white font-bold shadow-sm">
-                                {event.category || 'General'}
-                            </div>
+                            <div className="absolute top-3 right-3 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-black shadow-sm">{new Date(event.dateTime).toDateString()}</div>
+                            <div className="absolute bottom-3 left-3 bg-black/70 backdrop-blur px-3 py-1 rounded-full text-[10px] text-white font-bold shadow-sm">{event.category || 'General'}</div>
                         </div>
                         <h3 className="text-lg font-bold mb-1">{event.title}</h3>
                         <div className="flex items-center justify-between text-xs text-gray-500">
@@ -659,30 +619,18 @@ function HomeScreen({ currentUser, onEventClick, onCreateClick, onHostClick, onO
                         </div>
                         </div>
                     ))}
-                    
-                    {/* All Caught Up Footer */}
                     <div className="py-8 text-center space-y-4">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto text-2xl animate-bounce">🎉</div>
-                        <div>
-                            <h3 className="font-bold text-lg">You're all caught up!</h3>
-                            <p className="text-gray-500 text-xs max-w-[200px] mx-auto mt-1">No more events to show based on your filters. Why not start something new?</p>
-                        </div>
-                        <button onClick={onCreateClick} className="px-8 py-3 bg-black text-white rounded-2xl font-bold text-sm shadow-xl transform transition active:scale-95 hover:scale-105">
-                            Create an Event
-                        </button>
+                        <div><h3 className="font-bold text-lg">You're all caught up!</h3><p className="text-gray-500 text-xs max-w-[200px] mx-auto mt-1">No more events to show based on your filters. Why not start something new?</p></div>
+                        <button onClick={onCreateClick} className="px-8 py-3 bg-black text-white rounded-2xl font-bold text-sm shadow-xl transform transition active:scale-95 hover:scale-105">Create an Event</button>
                     </div>
                 </>
             )}
         </div>
       ) : (
           <div className="flex-1 w-full rounded-3xl overflow-hidden shadow-soft border border-gray-100 relative min-h-[300px]">
-              <GoogleMap 
-                markers={filteredEvents.filter(e => e.coordinates).map(e => ({ lat: e.coordinates!.lat, lng: e.coordinates!.lng, title: e.title, id: e._id }))} 
-                onMapClick={() => {}} 
-              />
-              <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur p-3 rounded-2xl text-xs text-center shadow-lg pointer-events-none z-[400]">
-                  Found {filteredEvents.length} events nearby
-              </div>
+              <GoogleMap markers={filteredEvents.filter(e => e.coordinates).map(e => ({ lat: e.coordinates!.lat, lng: e.coordinates!.lng, title: e.title, id: e._id }))} onMapClick={() => {}} />
+              <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur p-3 rounded-2xl text-xs text-center shadow-lg pointer-events-none z-[400]">Found {filteredEvents.length} events nearby</div>
           </div>
       )}
     </div>
@@ -706,7 +654,6 @@ function CreateEventScreen({ currentUser, onCancel, onSuccess, onVerify }: any) 
         const mod = await moderateText(`${title} ${desc}`);
         if (mod.flagged) { alert(`Content restricted: ${mod.reason}`); setLoading(false); return; }
         
-        // If coords selected from map, use them. Else fallback to current location.
         if (coords) {
              try {
                 await DB.createEvent({ title, description: desc, location: loc, dateTime: date, category }, currentUser, coords);
@@ -744,27 +691,12 @@ function CreateEventScreen({ currentUser, onCancel, onSuccess, onVerify }: any) 
                     <button onClick={() => setShowMap(false)} className="absolute top-6 right-6 text-black bg-white w-10 h-10 flex items-center justify-center rounded-full shadow-lg z-[1000]"><Icon name="times" /></button>
                 </div>
             )}
-
-            <div className="flex items-center gap-4 mb-6">
-                <button onClick={onCancel} className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center"><Icon name="arrow-left" /></button>
-                <h2 className="text-2xl font-black">Post Meeting</h2>
-            </div>
+            <div className="flex items-center gap-4 mb-6"><button onClick={onCancel} className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center"><Icon name="arrow-left" /></button><h2 className="text-2xl font-black">Post Meeting</h2></div>
             <div className="bg-white rounded-[2.5rem] p-8 space-y-4 shadow-soft">
                 <input placeholder="What's happening?" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" value={title} onChange={e=>setTitle(e.target.value)} />
                 <textarea placeholder="Tell us more..." className="w-full p-4 bg-gray-50 rounded-2xl outline-none min-h-[120px]" value={desc} onChange={e=>setDesc(e.target.value)} />
-                
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-2 mb-1 block">Category</label>
-                    <select className="w-full p-4 bg-gray-50 rounded-2xl outline-none appearance-none font-bold" value={category} onChange={e=>setCategory(e.target.value)}>
-                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                </div>
-
-                <div className="flex gap-2">
-                    <input placeholder="Landmark in Raipur" className="flex-1 p-4 bg-gray-50 rounded-2xl outline-none" value={loc} onChange={e=>setLoc(e.target.value)} />
-                    <button onClick={() => setShowMap(true)} className="w-14 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-500 hover:bg-gray-200"><Icon name="map-marker-alt" /></button>
-                </div>
-
+                <div><label className="text-xs font-bold text-gray-400 uppercase ml-2 mb-1 block">Category</label><select className="w-full p-4 bg-gray-50 rounded-2xl outline-none appearance-none font-bold" value={category} onChange={e=>setCategory(e.target.value)}>{CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+                <div className="flex gap-2"><input placeholder="Landmark in Raipur" className="flex-1 p-4 bg-gray-50 rounded-2xl outline-none" value={loc} onChange={e=>setLoc(e.target.value)} /><button onClick={() => setShowMap(true)} className="w-14 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-500 hover:bg-gray-200"><Icon name="map-marker-alt" /></button></div>
                 <input type="datetime-local" className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-medium text-gray-500" value={date} onChange={e=>setDate(e.target.value)} />
                 <VerificationGate user={currentUser} fallback={<button onClick={onVerify} className="w-full py-4 bg-orange-100 text-orange-600 font-bold rounded-2xl">Verify to Post</button>}>
                     <button onClick={handleSubmit} disabled={loading} className="w-full py-4 bg-black text-white font-bold rounded-2xl shadow-xl">{loading ? 'Verifying...' : 'Create in Raipur'}</button>
@@ -786,20 +718,13 @@ function EventDetailScreen({ event, currentUser, onBack, onHostClick, onVerify }
              <div className="relative h-80 -mx-6 -mt-6 rounded-b-[3rem] overflow-hidden shadow-lg mb-6">
                 <img src={event.imageURL} className="w-full h-full object-cover" />
                 <button onClick={onBack} className="absolute top-6 left-6 w-10 h-10 bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-md"><Icon name="arrow-left" /></button>
-                <div className="absolute bottom-6 left-6">
-                    <span className="bg-black/60 text-white backdrop-blur px-3 py-1 rounded-full text-xs font-bold shadow-sm mb-2 inline-block">
-                        {event.category || 'Event'}
-                    </span>
-                </div>
+                <div className="absolute bottom-6 left-6"><span className="bg-black/60 text-white backdrop-blur px-3 py-1 rounded-full text-xs font-bold shadow-sm mb-2 inline-block">{event.category || 'Event'}</span></div>
              </div>
              <div className="space-y-6">
                 <h1 className="text-3xl font-black leading-tight">{event.title}</h1>
                 <div className="flex items-center gap-2 text-gray-500 font-medium"><Icon name="map-marker-alt" /> {event.location}</div>
                 <div className="flex items-center justify-between p-4 bg-white rounded-2xl shadow-sm border border-gray-100" onClick={() => onHostClick(event.host)}>
-                    <div className="flex items-center gap-3">
-                        <img src={event.host.photoURL} className="w-12 h-12 rounded-full object-cover" />
-                        <div><div className="text-xs text-gray-400 font-bold uppercase">Hosted by</div><div className="font-bold">{event.host.name}</div></div>
-                    </div>
+                    <div className="flex items-center gap-3"><img src={event.host.photoURL} className="w-12 h-12 rounded-full object-cover" /><div><div className="text-xs text-gray-400 font-bold uppercase">Hosted by</div><div className="font-bold">{event.host.name}</div></div></div>
                 </div>
                 <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100"><p className="text-gray-600 leading-relaxed">{event.description}</p></div>
                 <div className="fixed bottom-6 left-6 right-6">
@@ -866,19 +791,12 @@ function PublicUserProfile({ currentUser, targetUser, onBack, onMessage, onBlock
              </div>
              <div className="flex flex-col items-center text-center mb-10">
                 <img src={targetUser.photoURL} className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-xl mb-4" />
-                <h1 className="text-3xl font-black mb-1">
-                    {targetUser.name}
-                    {(targetUser.privacySettings?.showAge ?? true) && `, ${targetUser.age}`}
-                </h1>
-                
+                <h1 className="text-3xl font-black mb-1">{targetUser.name}{(targetUser.privacySettings?.showAge ?? true) && `, ${targetUser.age}`}</h1>
                 <div className="flex items-center gap-2 mb-4">
-                    {(targetUser.privacySettings?.showGender ?? true) && targetUser.gender && (
-                        <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold uppercase">{targetUser.gender}</span>
-                    )}
+                    {(targetUser.privacySettings?.showGender ?? true) && targetUser.gender && <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-full text-[10px] font-bold uppercase">{targetUser.gender}</span>}
                     <TrustBadge score={targetUser.trustScore} />
                     {targetUser.verified && <span className="bg-blue-50 text-blue-600 px-2 py-1 rounded-full text-[10px] font-black uppercase">Verified</span>}
                 </div>
-                
                 <p className="text-gray-500 max-w-xs">{targetUser.bio}</p>
              </div>
              <div className="bg-white rounded-[2.5rem] p-6 shadow-soft border border-white space-y-6">
@@ -902,26 +820,17 @@ function MessagesList({ currentUser, onSelectConvo }: any) {
 
     useEffect(() => { DB.getMyConversations(currentUser._id).then(setConvos); }, [currentUser._id]);
     
-    // Filter Conversations
-    // PRIMARY: Accepted convos OR Pending convos initiated by current user
-    // REQUESTS: Pending convos initiated by OTHER users
     const primaryConvos = convos.filter(c => c.status === 'ACCEPTED' || c.requesterId === currentUser._id);
     const requestConvos = convos.filter(c => c.status === 'PENDING' && c.requesterId !== currentUser._id);
-
     const displayConvos = tab === 'PRIMARY' ? primaryConvos : requestConvos;
 
     return (
         <div className="animate-slide-up">
             <h2 className="text-2xl font-black mb-6">Chat.</h2>
-            
             <div className="flex gap-6 mb-6 border-b border-gray-100">
                 <button onClick={() => setTab('PRIMARY')} className={`pb-2 text-sm font-bold ${tab === 'PRIMARY' ? 'text-black border-b-2 border-black' : 'text-gray-400'}`}>Primary</button>
-                <button onClick={() => setTab('REQUESTS')} className={`pb-2 text-sm font-bold flex items-center gap-2 ${tab === 'REQUESTS' ? 'text-black border-b-2 border-black' : 'text-gray-400'}`}>
-                    Requests
-                    {requestConvos.length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full"></span>}
-                </button>
+                <button onClick={() => setTab('REQUESTS')} className={`pb-2 text-sm font-bold flex items-center gap-2 ${tab === 'REQUESTS' ? 'text-black border-b-2 border-black' : 'text-gray-400'}`}>Requests{requestConvos.length > 0 && <span className="w-2 h-2 bg-red-500 rounded-full"></span>}</button>
             </div>
-
             <div className="space-y-4">
                 {displayConvos.length === 0 ? <p className="text-gray-400 text-center py-10">No messages in {tab.toLowerCase()}.</p> : displayConvos.map(c => {
                     const other = c.participants.find(p => p._id !== currentUser._id) || c.participants[0];
@@ -974,12 +883,9 @@ function DirectChatRoom({ convo, currentUser, onBack, onBlockUpdate }: any) {
                 <div className="flex items-center gap-3"><button onClick={onBack}><Icon name="arrow-left" /></button><span className="font-bold">{other.name}</span></div>
                 <button onClick={async () => { const u = await DB.blockUser(currentUser._id, other._id); onBlockUpdate(u); }} className="text-xs text-red-500 font-bold">Block</button>
             </div>
-            
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 relative">
                 {messages.map(m => (<div key={m._id} className={`flex ${m.sender._id === currentUser._id ? 'justify-end' : 'justify-start'}`}><div className={`p-3 rounded-2xl max-w-[80%] text-sm ${m.sender._id === currentUser._id ? 'bg-black text-white rounded-br-none' : 'bg-white shadow-sm rounded-bl-none'}`}>{m.message}</div></div>))}
                 {isBlocked && <p className="text-center text-[10px] text-red-500 font-bold">Blocked. Unblock to continue chatting.</p>}
-                
-                {/* Request Overlay */}
                 {isRequest && (
                     <div className="absolute inset-x-0 bottom-0 p-6 bg-white/95 backdrop-blur-md border-t shadow-lg flex flex-col gap-3 items-center text-center">
                         <p className="text-sm font-bold text-gray-800">{other.name} wants to send you a message.</p>
@@ -991,7 +897,6 @@ function DirectChatRoom({ convo, currentUser, onBack, onBlockUpdate }: any) {
                     </div>
                 )}
             </div>
-
             {!isBlocked && !isRequest && (<div className="p-4 bg-white rounded-b-3xl border-t flex gap-2"><input className="flex-1 bg-gray-100 p-3 rounded-xl outline-none" value={text} onChange={e=>setText(e.target.value)} placeholder="Type..." /><button onClick={send} className="w-12 h-12 bg-black text-white rounded-xl"><Icon name="paper-plane"/></button></div>)}
          </div>
      );
@@ -1097,36 +1002,40 @@ function AuthScreen({ onSuccess }: { onSuccess: (user: User) => void }) {
   const [showCamera, setShowCamera] = useState(false);
   const [firebaseUid, setFirebaseUid] = useState<string | null>(null);
 
-  // --- FIX: Strict ReCAPTCHA Lifecycle Management ---
   useEffect(() => {
     // 1. Cleanup existing instance first (prevent ghost verifiers)
-    if (window.recaptchaVerifier) {
-      try {
-        window.recaptchaVerifier.clear();
-      } catch (e) {
-        console.warn("Cleanup warning:", e);
-      }
-      window.recaptchaVerifier = null;
-    }
-
-    // 2. Initialize fresh instance
-    try {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': () => {
-          console.log("reCAPTCHA solved");
+    const initRecaptcha = () => {
+        if (window.recaptchaVerifier) {
+          try { window.recaptchaVerifier.clear(); } catch(e) {}
+          window.recaptchaVerifier = null;
         }
-      });
-    } catch (e) {
-      console.error("reCAPTCHA init failed", e);
-    }
 
-    // 3. Cleanup on unmount
+        // 2. Wait for DOM
+        const container = document.getElementById('recaptcha-container');
+        if (container) {
+            try {
+                // 3. Initialize fresh instance
+                window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                    'size': 'invisible',
+                    'callback': () => {
+                        console.log("reCAPTCHA solved automatically");
+                    }
+                });
+            } catch (e) {
+                console.error("Recaptcha Init Error", e);
+            }
+        }
+    };
+
+    // Small delay to ensure DOM is ready in strict mode
+    const timer = setTimeout(initRecaptcha, 500);
+
     return () => {
-      try {
-        window.recaptchaVerifier?.clear();
-      } catch (e) {}
-      window.recaptchaVerifier = null;
+        clearTimeout(timer);
+        try {
+            if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
+        } catch (e) {}
+        window.recaptchaVerifier = null;
     };
   }, []);
 
@@ -1140,18 +1049,19 @@ function AuthScreen({ onSuccess }: { onSuccess: (user: User) => void }) {
       setLoading(true);
       setError("");
 
-      // --- FIX: Lazy Load Check ---
-      // If verifier is missing (e.g. from previous error clear), recreate it NOW before calling API
+      // --- FAILSAFE: Check if verifier exists, if not recreate it ---
       if (!window.recaptchaVerifier) {
-        try {
-           window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible',
-            'callback': () => console.log("reCAPTCHA solved")
-           });
-        } catch(e) {
-           setError("System error. Please reload page.");
-           return;
-        }
+          try {
+             window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                'size': 'invisible',
+                'callback': () => console.log("reCAPTCHA solved")
+             });
+          } catch(e) {
+             console.error("Recovery failed", e);
+             setError("Please refresh the page.");
+             setLoading(false);
+             return;
+          }
       }
   
       const phoneNumber = phone.startsWith("+") ? phone : `+91${phone}`;
@@ -1168,21 +1078,10 @@ function AuthScreen({ onSuccess }: { onSuccess: (user: User) => void }) {
       console.error("Phone Auth Error:", err);
       setError("Failed to send OTP. Try again.");
       
-      // --- FIX: Clear AND Recreate on Error ---
-      // This ensures the NEXT click works. If we only clear, the next click fails.
+      // Force reset on error so user can click again
       if (window.recaptchaVerifier) {
-        try { window.recaptchaVerifier.clear(); } catch(e){}
-        window.recaptchaVerifier = null;
-      }
-      
-      // Immediately restore verifier for retry
-      try {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible',
-            'callback': () => console.log("reCAPTCHA solved")
-        });
-      } catch(e) {
-          console.error("Recovery failed", e);
+          try { window.recaptchaVerifier.clear(); } catch(e){}
+          window.recaptchaVerifier = null;
       }
     } finally {
       setLoading(false);
