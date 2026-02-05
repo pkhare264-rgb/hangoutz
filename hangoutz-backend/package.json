@@ -2,12 +2,12 @@
   "name": "hangoutz-backend",
   "version": "1.0.0",
   "description": "Hangoutz backend API",
-  "main": "dist/app.js",
+  "main": "dist/index.js",
   "type": "commonjs",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/index.js"
   },
   "keywords": [],
   "author": "",
